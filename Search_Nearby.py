@@ -1,140 +1,179 @@
-class Heap(): 
- def parent(self, j):
-  return (j-1)// 2
+class Node():
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
+        self.isLeaf = False
+        self.assoc =[]
 
- def left(self, j):
-  return 2*j+1
-
- def right(self, j):
-  return 2*j+2
-
- def _has_left(self, j):
-  return self.left(j)<len(self._data) 
-
- def _has_right(self, j):
-  return self.right(j)<len(self._data)
-
- def _swap(self, i, j):
-  self._data[i], self._data[j] = self._data[j], self._data[i]
-
- def _upheap(self, j):
-  parent = self. parent(j)
-  if j > 0 and self._data[j] < self._data[parent]:
-   self._swap(j, parent)
-   self._upheap(parent) 
-
- def _downheap(self, j):
-  if self. _has_left(j):
-   left = self.left(j)
-   small_child = left 
-   if self._has_right(j):
-    right = self.right(j)
-    if self._data[right] < self._data[left]:
-     small_child = right
-   if self._data[small_child] < self._data[j]:
-    self._swap(j, small_child)
-    self._downheap(small_child)
- def __init__ (self):
-   self. _data = []
-
- def __len__ (self):
-   return len(self._data)
-
- def heappush(self,value):
-   self._data.append(value)
-   self._upheap(len(self._data)-1)
-
- def heappop(self):
-  self._swap(0, len(self._data)-1)
-  item = self._data.pop() 
-  self._downheap(0) 
-  return (item)   
-
- def is_empty(self):
-     return self._data==[]
-
-def operator(l,m):
-    if m[2]-l[2]>=0:
-        return -1
+class PointDatabase():
+ def __init__(self,pointlist):
+     self.dtree=self.ConstructRangeTree2d(sorted(pointlist),True)
+ def searchNearby(self,q,d):
+     return self.SearchRangeTree2d(self.dtree,q[0]-d,q[0]+d,q[1]-d,q[1]+d,2)
+     
+ def ConstructRangeTree2d1(self,data, enable=True):
+    if not data:
+        return None
+    if len(data) == 1:
+        node = Node(data[0])
+        node.isLeaf = True
     else:
-        if l[3]==m[3]:
-            return (l[3]+(m[1]-l[1])/(l[2]-m[2]))
-        elif l[3]>m[3]:
-            return(operator(l,[m[0],m[1]+m[2]*(l[3]-m[3]),m[2],l[3]]))
-        else:
-            return(operator([l[0],l[1]+(m[3]-l[3])*l[2],l[2],m[3]],m))
-
-def collider(t,i,L):
-    l,m=L[i],L[i+1]
-    if l[3]==m[3]:
-        r1=(l[0]-m[0])/(l[0]+m[0])
-        r2=m[0]/(l[0]+m[0])
-        r3=l[0]/(l[0]+m[0])
-        v1=r1*l[2]+2*r2*m[2]
-        v2=2*r3*l[2]-r1*m[2]
-        l[1]=l[1]+(t-l[3])*l[2]
-        m[1]=m[1]+(t-m[3])*m[2]
-        l[2]=v1
-        m[2]=v2
-        m[3]=l[3]=t
-        return(round(t,4),i,round(l[1],4))
-    elif l[3]>m[3]:
-            L[i+1]=[m[0],m[1]+m[2]*(l[3]-m[3]),m[2],l[3]]
-            return collider(t,i,L)
-            
+        mid_val = len(data)//2
+        node = Node(data[mid_val])
+        node.left = self.ConstructRangeTree2d1(data[:mid_val], enable)
+        node.right = self.ConstructRangeTree2d1(data[mid_val+1:], enable)
+    return node
+ def ConstructRangeTree2d(self,data,enable):
+    datatree=self.ConstructRangeTree2d1(data,True)
+    self.concatdata(datatree)
+    return datatree
+ def merge(self,test_list1,test_list2):
+    size_1 = len(test_list1)
+    size_2 = len(test_list2)
+    res = []
+    i, j = 0, 0
+  
+    while i < size_1 and j < size_2:
+     if test_list1[i][1] < test_list2[j][1]:
+      res.append(test_list1[i])
+      i += 1
+  
+     else:
+      res.append(test_list2[j])
+      j += 1
+  
+    res = res + test_list1[i:] + test_list2[j:]
+    return res   
+ def concatdata(self,treeroot):
+    if treeroot==None:
+        return []
+    if treeroot.isLeaf:
+        treeroot.assoc=[treeroot.value]
+        return treeroot.assoc
     else:
-            L[i]=[l[0],l[1]+(m[3]-l[3])*l[2],l[2],m[3]]
-            return collider(t,i,L)
-        
-def listCollisions(M,x,v,m,T):
-    op=Heap()
-    lis=[]
-    maintainer=[-1]*(len(M)-1)
-    for i in range(len(M)):
-        lis.append([M[i],x[i],v[i],0])
-    count=1    
-    for i in range(len(M)-1):
-        h=operator(lis[i],lis[i+1])
-        if h!=-1:
-          op.heappush((h,i,count))
-          maintainer[i]=(h,count)
-          count+=1
-    f=0
-    ans=[]
-    t=0
-    while f<m:
-        if op.is_empty():
-            break
-        k1=op.heappop()
-        t=k1[0]
-        if t>T:
-            break
-        if maintainer[k1[1]]!=-1:
-            if k1[2]==maintainer[k1[1]][1]:
-                h=collider(k1[0],k1[1],lis)
-                maintainer[k1[1]]=-1
-                ans.append(h)
-                f+=1
-            else:
-                continue
+        a=self.concatdata(treeroot.left)
+        b=self.concatdata(treeroot.right)
+        treeroot.assoc=self.merge(a,b)
+        treeroot.assoc.insert(self.find1(treeroot.assoc,treeroot.value),treeroot.value)
+        return treeroot.assoc
+    
+
+ def withinRange(self,point, rangev , check):
+    if check == 1:
+        x = point
+        if (x >= rangev[0][0]  and x <= rangev[0][1] ) :
+            return True
         else:
-                continue       
-        if k1[1]>=1:
-            r1=operator(lis[k1[1]-1],lis[k1[1]])
-            if r1!=-1 :
-               rx1=(r1,k1[1]-1,count) 
-               op.heappush(rx1)
-               maintainer[rx1[1]]=(rx1[0],rx1[2])               
-               count+=1
+            return False
+    elif check == 2:
+        x = point[0]
+        y = point[1]
+
+        if (x >= rangev[0][0]   and x <= rangev[0][1]  and y >= rangev[1][0]  and y <= rangev[1][1] ) :
+            return True
+        else:
+            return False
+
+ def getValue (self,point, enable, dim ):
+    if dim == 1:
+        value = point.value
+    elif dim == 2:
+        if enable:
+            value = point.value[0]
+        else:
+            value = point.value[1]
+    return value
+
+ def FindSplitNode(self,root, p_min , p_max, dim, enable ):
+    splitnode = root
+    while splitnode != None:
+        node = self.getValue(splitnode, enable, dim)
+        if p_max < node:
+            splitnode = splitnode.left
+        elif p_min > node:
+            splitnode = splitnode.right
+        elif p_min <= node <= p_max :
+            break
+    return splitnode
+ def find(self,arr,K):
+     start = 0
+     end =len(arr)-1
+     while start<= end:
+        mid =(start + end)//2
+        if arr[mid][1] == K:
+            return mid
+        elif arr[mid][1] < K:
+            start = mid + 1
+        else:
+            end = mid-1
+     return end + 1
+ def find1(self,arr,K):
+     start = 0
+     end =len(arr)-1
+     while start<= end:
+        mid =(start + end)//2
+        if arr[mid][1] == K[1]:
+            return mid
+        elif arr[mid][1] < K[1]:
+            start = mid + 1
+        else:
+            end = mid-1
+     return end + 1   
+ def SearchRangeTree1d (self,data, p1, p2):
+    a=self.find(data,p1)
+    b=self.find(data,p2)
+    if b<len(data) and data[b][1]<=p2:
+        return data[a:b+1]
+    else:
+        return data[a:b]
+
+ def SearchRangeTree2d (self,tree, x1, x2, y1, y2, dim ):
+    results = []
+    splitnode = self.FindSplitNode(tree, x1, x2, 2, True)
+    if (splitnode == None):
+        return results
+    elif splitnode.isLeaf:
+        if self.withinRange(splitnode.value, [(x1, x2), (y1, y2)], 2):
+          results.append(splitnode.value)      
+    
+    else:
+        if self.withinRange(splitnode.value, [(x1, x2), (y1, y2)], 2):
+          results.append(splitnode.value) 
+        if splitnode.left!=None:
+         v=splitnode.left
+         while True:
+            if x1<=v.value[0]:
+                if self.withinRange(v.value, [(x1, x2), (y1, y2)], 2):
+                      results.append(v.value) 
+                if v.right!=None:
+                  results+=self.SearchRangeTree1d(v.right.assoc,y1,y2)
+                if v.left!=None: 
+                  v=v.left
+                else:
+                    break
             else:
-                maintainer[k1[1]-1]=-1
-        if k1[1]<=len(lis)-3:
-         r2=operator(lis[k1[1]+1],lis[k1[1]+2])
-         if r2!=-1 :
-              rx2=(r2,k1[1]+1,count)
-              op.heappush(rx2)
-              maintainer[rx2[1]]=(rx2[0],rx2[2])
-              count+=1
-         else:
-             maintainer[k1[1]+1]=-1
-    return(ans)    
+                if v.right!=None:
+                 v=v.right
+                else:
+                    break
+                
+                
+        if splitnode.right!=None:        
+         v=splitnode.right
+         while True: 
+            if v.value[0]<=x2:
+                if self.withinRange(v.value, [(x1, x2), (y1, y2)], 2):
+                      results.append(v.value)
+                if v.left!=None:      
+                   results+=self.SearchRangeTree1d(v.left.assoc,y1,y2)
+                if v.right!=None:   
+                  v=v.right
+                else:
+                    break
+            else:
+                if v.left!=None:
+                    v=v.left
+                else:
+                    break
+    return results        
